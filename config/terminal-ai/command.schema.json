@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "One single-line zsh command, or a comment beginning with # REFUSED:"
+    }
+  },
+  "required": ["command"],
+  "additionalProperties": false
+}

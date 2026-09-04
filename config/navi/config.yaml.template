@@ -1,0 +1,23 @@
+style:
+  tag:
+    color: white
+    width_percentage: 22
+    min_width: 16
+  comment:
+    color: white
+    width_percentage: 42
+    min_width: 36
+  snippet:
+    color: white
+
+finder:
+  command: fzf
+  overrides: --height=75% --layout=reverse --border=rounded --info=inline
+
+cheats:
+  paths:
+    - __HOME__/.local/share/navi/cheats
+
+shell:
+  command: zsh
+  finder_command: zsh

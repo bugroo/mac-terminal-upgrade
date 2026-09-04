@@ -1,0 +1,12 @@
+brew "eza"
+brew "fzf"
+brew "jq"
+brew "navi"
+brew "ripgrep"
+brew "tmux"
+brew "zoxide"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+
+cask "codex"
+cask "font-jetbrains-mono-nerd-font"

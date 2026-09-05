@@ -65,17 +65,17 @@ fi
 
 _terminal_ai_command_widget() {
     if [[ "$BUFFER" != '# '* ]]; then
-        zle -M 'IA: empieza la línea con # y describe el comando'
+        zle -M 'AI: start the line with # and describe the command'
         return 0
     fi
 
     local terminal_ai_request="${BUFFER#\# }"
     if [[ -z "${terminal_ai_request//[[:space:]]/}" ]]; then
-        zle -M 'IA: falta la descripción después de #'
+        zle -M 'AI: add a description after #'
         return 0
     fi
 
-    zle -M 'IA: generando comando; Ctrl-C cancela'
+    zle -M 'AI: generating command; Control-C cancels'
     zle redisplay
 
     local terminal_ai_result
@@ -85,9 +85,9 @@ _terminal_ai_command_widget() {
     if (( terminal_ai_status == 0 )) && [[ -n "$terminal_ai_result" ]]; then
         BUFFER="$terminal_ai_result"
         CURSOR=${#BUFFER}
-        zle -M 'IA: revisa el comando; Enter lo ejecuta'
+        zle -M 'AI: review the command; Enter runs it'
     else
-        zle -M 'IA: no se pudo generar el comando'
+        zle -M 'AI: command generation failed'
     fi
     zle redisplay
 }

@@ -1,0 +1,62 @@
+% system, diagnostics
+
+# Show Mac load and uptime
+uptime
+
+# Show free space on the main volume
+df -h /
+
+# Show the largest entries in the current directory
+du -sh -- * 2>/dev/null | sort -h | tail -20
+
+# Show processes ordered by CPU usage
+ps -Ao pid,pcpu,pmem,comm -r | head -16
+
+% files, search
+
+# Search for text inside a directory
+rg --hidden --glob '!.git' <text> <directory>
+
+$ directory: printf '.\n'
+
+# Find files by name
+find <directory> -iname '*<name>*' -print
+
+$ directory: printf '.\n'
+
+% git, read-only
+
+# Show a compact repository status
+git status --short --branch
+
+# Show recent changes without modifying anything
+git log --oneline --decorate -20
+
+# Check and summarize the current diff
+git diff --check && git diff --stat
+
+% pnpm, project
+
+# Run a known project check with pnpm
+pnpm run <check>
+
+$ check: printf 'test\nlint\ntypecheck\nbuild\n'
+
+% sessions, tmux
+
+# Open or recover the main workspace
+tmux new-session -A -s main
+
+# Show available sessions
+tmux list-sessions
+
+% ai, assistance
+
+# Open Codex in read-only mode
+ai
+
+# Open Codex with permission to modify the current project
+ai-build
+
+# Open Codex with web search and without modifying files
+ai-web

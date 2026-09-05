@@ -2,7 +2,7 @@ on run argv
     set profileName to item 1 of argv
 
     tell application "Terminal"
-        if not (exists settings set profileName) then error "No existe el perfil " & profileName
+        if not (exists settings set profileName) then error "Terminal profile not found: " & profileName
         set calmProfile to settings set profileName
 
         set background color of calmProfile to {4112, 4626, 5911}

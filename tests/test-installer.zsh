@@ -7,8 +7,8 @@ repo_dir="${0:A:h:h}"
 test_root="$(mktemp -d "${TMPDIR:-/tmp}/mac-terminal-upgrade-test.XXXXXX")"
 
 mkdir -p "$test_root"
-printf '# configuración previa\nalias original="printf original"\n' > "$test_root/.zshrc"
-printf '# tmux previo\nset -g mouse off\n' > "$test_root/.tmux.conf"
+printf '# existing configuration\nalias original="printf original"\n' > "$test_root/.zshrc"
+printf '# existing tmux configuration\nset -g mouse off\n' > "$test_root/.tmux.conf"
 
 MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null
 MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null
@@ -50,14 +50,14 @@ ask_fake() {
     FAKE_CODEX_COMMAND="$1" \
     PATH="$fake_bin:$PATH" \
     TERMINAL_AI_SCHEMA="$test_root/.config/mac-terminal-upgrade/terminal-ai/command.schema.json" \
-    "$test_root/.local/bin/mac-terminal-ai-command" 'prueba'
+    "$test_root/.local/bin/mac-terminal-ai-command" 'test request'
 }
 
 [[ "$(ask_fake 'df -h /')" == 'df -h /' ]]
 [[ "$(ask_fake $'rm\t-rf /')" == '# REFUSED:'* ]]
 [[ "$(ask_fake 'find . -delete')" == '# REFUSED:'* ]]
 [[ "$(ask_fake "find . -'delete'")" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'rg --pre sh secreto')" == '# REFUSED:'* ]]
+[[ "$(ask_fake 'rg --pre sh secret')" == '# REFUSED:'* ]]
 [[ "$(ask_fake 'ls & rm -rf /')" == '# REFUSED:'* ]]
 [[ "$(ask_fake 'ls !!')" == '# REFUSED:'* ]]
 [[ "$(ask_fake 'git grep --open-files-in-pager=sh needle')" == '# REFUSED:'* ]]
@@ -67,8 +67,8 @@ ask_fake() {
 [[ "$(ask_fake 'sysctl -if settings.conf')" == '# REFUSED:'* ]]
 [[ "$(ask_fake 'sort -uo out input')" == '# REFUSED:'* ]]
 [[ "$(ask_fake 'du -ah . | sort -hr | head')" == 'du -ah . | sort -hr | head' ]]
-[[ "$(ask_fake $'# REFUSED: motivo\ndate')" == '# REFUSED: la propuesta no pasó la política local de solo lectura' ]]
-[[ "$(ask_fake $'# REFUSED: motivo\tdate')" == '# REFUSED: la propuesta no pasó la política local de solo lectura' ]]
+[[ "$(ask_fake $'# REFUSED: reason\ndate')" == '# REFUSED: the proposal did not pass the local read-only policy' ]]
+[[ "$(ask_fake $'# REFUSED: reason\tdate')" == '# REFUSED: the proposal did not pass the local read-only policy' ]]
 [[ "$(ask_fake $'ls \e[31m')" == '# REFUSED:'* ]]
 [[ "$(ask_fake $'ls \vdate')" == '# REFUSED:'* ]]
 [[ "$(ask_fake 'find . *')" == '# REFUSED:'* ]]
@@ -76,10 +76,10 @@ ask_fake() {
 
 broken_root="$test_root-broken"
 mkdir -p "$broken_root"
-printf '%s\n%s\n' '# >>> mac-terminal-upgrade >>>' 'NO BORRAR ESTA COLA' > "$broken_root/.zshrc"
+printf '%s\n%s\n' '# >>> mac-terminal-upgrade >>>' 'DO NOT REMOVE THIS TRAILING LINE' > "$broken_root/.zshrc"
 cp "$broken_root/.zshrc" "$broken_root/.zshrc.expected"
 if MTU_TARGET_HOME="$broken_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null 2>&1; then
-    print -u2 -- "El instalador aceptó marcadores incompletos."
+    print -u2 -- "The installer accepted incomplete markers."
     exit 1
 fi
 cmp "$broken_root/.zshrc.expected" "$broken_root/.zshrc"
@@ -87,19 +87,19 @@ cmp "$broken_root/.zshrc.expected" "$broken_root/.zshrc"
 
 collision_root="$test_root-collision"
 mkdir -p "$collision_root/.local/bin"
-printf 'archivo ajeno\n' > "$collision_root/.local/bin/mac-terminal-ai-command"
+printf 'unmanaged file\n' > "$collision_root/.local/bin/mac-terminal-ai-command"
 if MTU_TARGET_HOME="$collision_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null 2>&1; then
-    print -u2 -- "El instalador sobrescribió un archivo ajeno."
+    print -u2 -- "The installer overwrote an unmanaged file."
     exit 1
 fi
-rg -q '^archivo ajeno$' "$collision_root/.local/bin/mac-terminal-ai-command"
+rg -q '^unmanaged file$' "$collision_root/.local/bin/mac-terminal-ai-command"
 
 invalid_root="$test_root-invalid-zsh"
 mkdir -p "$invalid_root"
-printf '%s\n' 'if {' 'NO BORRAR ESTA COLA' > "$invalid_root/.zshrc"
+printf '%s\n' 'if {' 'DO NOT REMOVE THIS TRAILING LINE' > "$invalid_root/.zshrc"
 cp "$invalid_root/.zshrc" "$invalid_root/.zshrc.expected"
 if MTU_TARGET_HOME="$invalid_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null 2>&1; then
-    print -u2 -- "El instalador aceptó una .zshrc inválida."
+    print -u2 -- "The installer accepted an invalid .zshrc."
     exit 1
 fi
 cmp "$invalid_root/.zshrc.expected" "$invalid_root/.zshrc"
@@ -111,14 +111,14 @@ MTU_TARGET_HOME="$partial_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_d
 cp "$partial_root/.zshrc" "$partial_root/.zshrc.expected"
 sed -i '' '/^# <<< mac-terminal-upgrade <<<$/{d;}' "$partial_root/.tmux.conf"
 if MTU_TARGET_HOME="$partial_root" "$repo_dir/uninstall.sh" >/dev/null 2>&1; then
-    print -u2 -- "La desinstalación aceptó marcadores incompletos."
+    print -u2 -- "The uninstaller accepted incomplete markers."
     exit 1
 fi
 cmp "$partial_root/.zshrc.expected" "$partial_root/.zshrc"
 [[ -e "$partial_root/.config/mac-terminal-upgrade/.installed-by-mac-terminal-upgrade" ]]
 
 if rg -n '/Users/rootml|gho_|OPENAI_API_KEY|ANTHROPIC_API_KEY' "$repo_dir" --glob '!tests/test-installer.zsh'; then
-    print -u2 -- "Se encontró información local o sensible en el repositorio."
+    print -u2 -- "Local or sensitive information was found in the repository."
     exit 1
 fi
 
@@ -128,5 +128,5 @@ MTU_TARGET_HOME="$test_root" "$repo_dir/uninstall.sh" >/dev/null
 rg -q 'alias original=' "$test_root/.zshrc"
 rg -q 'set -g mouse off' "$test_root/.tmux.conf"
 
-print -- "OK: instalación repetible, configuración preservada y desinstalación recuperable."
-print -- "Directorio de prueba: $test_root"
+print -- "OK: repeatable installation, preserved configuration, and recoverable uninstall."
+print -- "Test directory: $test_root"

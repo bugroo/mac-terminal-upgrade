@@ -12,7 +12,7 @@ managed_root="$target_home/.config/mac-terminal-upgrade"
 install_marker="$managed_root/.installed-by-mac-terminal-upgrade"
 
 if [[ ! -e "$install_marker" ]]; then
-    print -u2 -- "No se encontró una instalación administrada de mac-terminal-upgrade."
+    print -u2 -- "No managed mac-terminal-upgrade installation was found."
     exit 1
 fi
 
@@ -29,7 +29,7 @@ validate_managed_block() {
     begin_count="$(awk -v marker="$begin_marker" '$0 == marker { count++ } END { print count + 0 }' "$target_file")"
     end_count="$(awk -v marker="$end_marker" '$0 == marker { count++ } END { print count + 0 }' "$target_file")"
     if [[ "$begin_count" != "$end_count" || "$begin_count" -gt 1 ]]; then
-        print -u2 -- "Marcadores incompletos o duplicados en $target_file. No se modificó."
+        print -u2 -- "Incomplete or duplicate managed markers in $target_file. Nothing was changed."
         return 1
     fi
     if [[ "$begin_count" == 1 ]] && ! awk -v begin="$begin_marker" -v end="$end_marker" '
@@ -37,7 +37,7 @@ validate_managed_block() {
         $0 == end && !end_line { end_line = NR }
         END { exit !(begin_line < end_line) }
     ' "$target_file"; then
-        print -u2 -- "Orden de marcadores inválido en $target_file. No se modificó."
+        print -u2 -- "Managed markers are in the wrong order in $target_file. Nothing was changed."
         return 1
     fi
 }
@@ -87,6 +87,6 @@ fi
 
 chmod -R go-rwx "$backup_dir"
 
-print -- "Configuración de shell retirada."
-print -- "Elementos recuperables: $backup_dir"
-print -- "Los paquetes Homebrew se conservaron; se restauraron los perfiles anteriores y se retiró el perfil instalado."
+print -- "Shell configuration removed."
+print -- "Recoverable files: $backup_dir"
+print -- "Homebrew packages were preserved; previous profiles were restored and the installed profile was removed."

@@ -56,7 +56,7 @@ validate_managed_block() {
     begin_count="$(awk -v marker="$begin_marker" '$0 == marker { count++ } END { print count + 0 }' "$target_file")"
     end_count="$(awk -v marker="$end_marker" '$0 == marker { count++ } END { print count + 0 }' "$target_file")"
     if [[ "$begin_count" != "$end_count" || "$begin_count" -gt 1 ]]; then
-        print -u2 -- "Marcadores incompletos o duplicados en $target_file. No se modificó."
+        print -u2 -- "Incomplete or duplicate managed markers in $target_file. Nothing was changed."
         return 1
     fi
     if [[ "$begin_count" == 1 ]] && ! awk -v begin="$begin_marker" -v end="$end_marker" '
@@ -64,7 +64,7 @@ validate_managed_block() {
         $0 == end && !end_line { end_line = NR }
         END { exit !(begin_line < end_line) }
     ' "$target_file"; then
-        print -u2 -- "Orden de marcadores inválido en $target_file. No se modificó."
+        print -u2 -- "Managed markers are in the wrong order in $target_file. Nothing was changed."
         return 1
     fi
 }
@@ -77,7 +77,7 @@ tmux_end='# <<< mac-terminal-upgrade <<<'
 validate_managed_block "$target_home/.zshrc" "$zsh_begin" "$zsh_end"
 validate_managed_block "$target_home/.tmux.conf" "$tmux_begin" "$tmux_end"
 if [[ -e "$target_home/.zshrc" ]] && ! zsh -n "$target_home/.zshrc"; then
-    print -u2 -- "La configuración Zsh existente contiene un error de sintaxis. Se creó el backup, pero no se instaló nada."
+    print -u2 -- "The existing Zsh configuration contains a syntax error. A backup was created, but nothing was installed."
     exit 1
 fi
 zsh -n "$script_dir/config/zsh/terminal-upgrade.zsh"
@@ -85,40 +85,40 @@ zsh -n "$script_dir/bin/terminal-ai-command"
 plutil -lint "$script_dir/terminal/Mac-Terminal-Upgrade-Focus.terminal" >/dev/null
 
 if [[ -d "$managed_root" && ! -e "$install_marker" ]]; then
-    print -u2 -- "Ya existe $managed_root y no pertenece a este instalador. No se modificó."
+    print -u2 -- "$managed_root already exists and is not owned by this installer. Nothing was changed."
     exit 1
 fi
 if [[ -e "$managed_helper" && ! -e "$install_marker" ]]; then
-    print -u2 -- "Ya existe $managed_helper y no pertenece a este instalador. No se modificó."
+    print -u2 -- "$managed_helper already exists and is not owned by this installer. Nothing was changed."
     exit 1
 fi
 if [[ -e "$managed_cheat" && ! -e "$install_marker" ]]; then
-    print -u2 -- "Ya existe $managed_cheat y no pertenece a este instalador. No se modificó."
+    print -u2 -- "$managed_cheat already exists and is not owned by this installer. Nothing was changed."
     exit 1
 fi
 if [[ "$skip_terminal" != 1 && "$target_home" == "$HOME" ]]; then
     profile_exists="$(osascript -e 'tell application "Terminal" to exists settings set "Mac Terminal Upgrade - Focus"')"
     if [[ "$profile_exists" == true && ! -e "$profile_marker" ]]; then
-        print -u2 -- "Ya existe un perfil de Terminal llamado '$profile_name' que no pertenece a este instalador."
+        print -u2 -- "A Terminal profile named '$profile_name' already exists and is not owned by this installer."
         exit 1
     fi
 fi
 
 if [[ "$skip_packages" != 1 ]]; then
     if ! command -v brew >/dev/null 2>&1; then
-        print -- "Instalando Homebrew desde su instalador oficial..."
+        print -- "Installing Homebrew with its official installer..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         if [[ -x /opt/homebrew/bin/brew ]]; then
             eval "$(/opt/homebrew/bin/brew shellenv)"
         elif [[ -x /usr/local/bin/brew ]]; then
             eval "$(/usr/local/bin/brew shellenv)"
         else
-            print -u2 -- "Homebrew no quedó disponible."
+            print -u2 -- "Homebrew is still unavailable after installation."
             exit 1
         fi
     fi
 
-    print -- "Instalando herramientas de Terminal..."
+    print -- "Installing Terminal tools..."
     HOMEBREW_NO_AUTO_UPDATE=1 brew bundle install --no-upgrade --file "$script_dir/Brewfile"
 fi
 
@@ -137,7 +137,7 @@ install -m 600 "$script_dir/config/zsh/terminal-upgrade.zsh" "$managed_root/zsh/
 install -m 600 "$script_dir/config/tmux/terminal-upgrade.conf" "$managed_root/tmux/terminal-upgrade.conf"
 install -m 600 "$script_dir/config/terminal-ai/command.schema.json" "$managed_root/terminal-ai/command.schema.json"
 install -m 700 "$script_dir/bin/terminal-ai-command" "$managed_helper"
-install -m 600 "$script_dir/config/navi/cheats/terminal-inteligente.cheat" "$managed_cheat"
+install -m 600 "$script_dir/config/navi/cheats/terminal-upgrade.cheat" "$managed_cheat"
 
 escaped_home="${target_home//\/\\}"
 escaped_home="${escaped_home//&/\\&}"
@@ -201,7 +201,7 @@ if [[ "$skip_terminal" != 1 && "$target_home" == "$HOME" ]]; then
     fi
 
     if [[ "$profile_exists" != true ]]; then
-        print -u2 -- "No se pudo importar el perfil Focus de Terminal.app."
+        print -u2 -- "The Focus profile could not be imported into Terminal.app."
         exit 1
     fi
     printf '%s\n' "$profile_name" > "$profile_marker"
@@ -217,7 +217,7 @@ find "$backup_dir" -type f ! -name CHECKSUMS.sha256 -exec shasum -a 256 {} \; > 
 chmod -R go-rwx "$backup_dir"
 
 print -- ""
-print -- "Instalación completada."
+print -- "Installation complete."
 print -- "Backup: $backup_dir"
-print -- "Abre una pestaña nueva con Cmd-T."
-print -- "IA inline: escribe '# describe el comando' y pulsa Enter."
+print -- "Open a new tab with Command-T."
+print -- "Inline AI: type '# describe the command' and press Enter."

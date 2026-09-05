@@ -3,22 +3,22 @@
 set -u
 
 if (( $# != 1 )) || [[ -z "${1//[[:space:]]/}" ]]; then
-    print -u2 -- "Escribe una petición después de #."
+    print -u2 -- "Enter a request after #."
     exit 2
 fi
 
 if (( ${#1} > 1000 )); then
-    print -u2 -- "La petición supera los 1000 caracteres."
+    print -u2 -- "The request exceeds 1,000 characters."
     exit 2
 fi
 
 if ! command -v codex >/dev/null 2>&1; then
-    print -u2 -- "Codex CLI no está disponible."
+    print -u2 -- "Codex CLI is unavailable."
     exit 127
 fi
 
 if ! command -v jq >/dev/null 2>&1; then
-    print -u2 -- "jq no está disponible."
+    print -u2 -- "jq is unavailable."
     exit 127
 fi
 
@@ -27,7 +27,7 @@ trap 'rm -rf -- "$terminal_ai_tmp"' EXIT INT TERM HUP
 
 terminal_ai_schema="${TERMINAL_AI_SCHEMA:-$HOME/.config/mac-terminal-upgrade/terminal-ai/command.schema.json}"
 terminal_ai_output="$terminal_ai_tmp/answer.json"
-terminal_ai_prompt="You translate a Spanish or English natural-language request into exactly one read-only, single-line zsh command for macOS. Do not execute commands, inspect files, use tools, read history, add Markdown, use redirections, shell variables, quoting, escapes, or propose writes. Prefer these commands: eza, ls, find, rg, grep, du, df, stat, file, head, tail, sort, wc, cut, tr, ps, lsof, pwd, date, uptime, sw_vers, uname, vm_stat, memory_pressure, which, type, limited Git status/metadata queries, brew read-only subcommands. If the request cannot be satisfied read-only, return a command value beginning with # REFUSED: followed by a short Spanish reason. Request: $1"
+terminal_ai_prompt="You translate an English natural-language request into exactly one read-only, single-line zsh command for macOS. Do not execute commands, inspect files, use tools, read history, add Markdown, use redirections, shell variables, quoting, escapes, or propose writes. Prefer these commands: eza, ls, find, rg, grep, du, df, stat, file, head, tail, sort, wc, cut, tr, ps, lsof, pwd, date, uptime, sw_vers, uname, vm_stat, memory_pressure, which, type, limited Git status/metadata queries, brew read-only subcommands. If the request cannot be satisfied read-only, return a command value beginning with # REFUSED: followed by a short English reason. Request: $1"
 
 if ! codex exec \
     --ephemeral \
@@ -47,17 +47,17 @@ if ! codex exec \
     "$terminal_ai_prompt" \
     </dev/null \
     >/dev/null 2>"$terminal_ai_tmp/error.log"; then
-    print -u2 -- "La IA no pudo generar el comando. Ejecuta 'codex login' y prueba otra vez."
+    print -u2 -- "AI could not generate a command. Run 'codex login' and try again."
     exit 1
 fi
 
 terminal_ai_command="$(jq -er '.command | select(type == "string" and length > 0)' "$terminal_ai_output")" || {
-    print -u2 -- "La IA devolvió una respuesta inválida."
+    print -u2 -- "AI returned an invalid response."
     exit 1
 }
 
 refuse_generated_command() {
-    print -r -- "# REFUSED: la propuesta no pasó la política local de solo lectura"
+    print -r -- "# REFUSED: the proposal did not pass the local read-only policy"
     exit 0
 }
 

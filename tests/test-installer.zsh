@@ -22,10 +22,10 @@ cmp "$test_root/.tmux.conf.before-dry-run" "$test_root/.tmux.conf"
 MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null
 MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null
 
-[[ "$(rg -c '^# >>> mac-terminal-upgrade >>>$' "$test_root/.zshrc")" == 1 ]]
-[[ "$(rg -c '^# >>> mac-terminal-upgrade >>>$' "$test_root/.tmux.conf")" == 1 ]]
-rg -q 'alias original=' "$test_root/.zshrc"
-rg -q 'set -g mouse off' "$test_root/.tmux.conf"
+[[ "$(grep -c '^# >>> mac-terminal-upgrade >>>$' "$test_root/.zshrc")" == 1 ]]
+[[ "$(grep -c '^# >>> mac-terminal-upgrade >>>$' "$test_root/.tmux.conf")" == 1 ]]
+grep -q 'alias original=' "$test_root/.zshrc"
+grep -q 'set -g mouse off' "$test_root/.tmux.conf"
 [[ -x "$test_root/.local/bin/mac-terminal-ai-command" ]]
 [[ -r "$test_root/.config/mac-terminal-upgrade/terminal-ai/command.schema.json" ]]
 [[ -r "$test_root/.local/share/navi/cheats/mac-terminal-upgrade.cheat" ]]
@@ -118,7 +118,7 @@ if MTU_TARGET_HOME="$collision_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$r
     print -u2 -- "The installer overwrote an unmanaged file."
     exit 1
 fi
-rg -q '^unmanaged file$' "$collision_root/.local/bin/mac-terminal-ai-command"
+grep -q '^unmanaged file$' "$collision_root/.local/bin/mac-terminal-ai-command"
 
 invalid_root="$test_root-invalid-zsh"
 mkdir -p "$invalid_root"
@@ -143,16 +143,16 @@ fi
 cmp "$partial_root/.zshrc.expected" "$partial_root/.zshrc"
 [[ -e "$partial_root/.config/mac-terminal-upgrade/.installed-by-mac-terminal-upgrade" ]]
 
-if rg -n '/Users/rootml|gho_|OPENAI_API_KEY|ANTHROPIC_API_KEY' "$repo_dir" --glob '!tests/test-installer.zsh'; then
+if grep -RInE --exclude='test-installer.zsh' --exclude-dir='.git' '/Users/rootml|gho_|OPENAI_API_KEY|ANTHROPIC_API_KEY' "$repo_dir"; then
     print -u2 -- "Local or sensitive information was found in the repository."
     exit 1
 fi
 
 MTU_TARGET_HOME="$test_root" "$repo_dir/uninstall.sh" >/dev/null
-! rg -q '^# >>> mac-terminal-upgrade >>>$' "$test_root/.zshrc"
-! rg -q '^# >>> mac-terminal-upgrade >>>$' "$test_root/.tmux.conf"
-rg -q 'alias original=' "$test_root/.zshrc"
-rg -q 'set -g mouse off' "$test_root/.tmux.conf"
+! grep -q '^# >>> mac-terminal-upgrade >>>$' "$test_root/.zshrc"
+! grep -q '^# >>> mac-terminal-upgrade >>>$' "$test_root/.tmux.conf"
+grep -q 'alias original=' "$test_root/.zshrc"
+grep -q 'set -g mouse off' "$test_root/.tmux.conf"
 
 print -- "OK: repeatable installation, preserved configuration, and recoverable uninstall."
 print -- "Test directory: $test_root"

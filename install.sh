@@ -90,7 +90,11 @@ if [[ -e "$target_home/.zshrc" ]] && ! zsh -n "$target_home/.zshrc"; then
     exit 1
 fi
 zsh -n "$script_dir/config/zsh/terminal-upgrade.zsh"
+zsh -n "$script_dir/config/zsh/terminal-ai.zsh"
 zsh -n "$script_dir/bin/terminal-ai-command"
+if command -v node >/dev/null 2>&1; then
+    node --check "$script_dir/bin/terminal-ai-chat.mjs"
+fi
 plutil -lint "$script_dir/terminal/Mac-Terminal-Upgrade-Focus.terminal" >/dev/null
 
 if [[ -d "$managed_root" && ! -e "$install_marker" ]]; then
@@ -178,6 +182,8 @@ printf 'managed by mac-terminal-upgrade\n' > "$install_marker"
 chmod 600 "$install_marker"
 
 install -m 600 "$script_dir/config/zsh/terminal-upgrade.zsh" "$managed_root/zsh/terminal-upgrade.zsh"
+install -m 600 "$script_dir/config/zsh/terminal-ai.zsh" "$managed_root/zsh/terminal-ai.zsh"
+install -m 600 "$script_dir/bin/terminal-ai-chat.mjs" "$managed_root/terminal-ai/terminal-ai-chat.mjs"
 install -m 600 "$script_dir/config/tmux/terminal-upgrade.conf" "$managed_root/tmux/terminal-upgrade.conf"
 install -m 600 "$script_dir/config/terminal-ai/command.schema.json" "$managed_root/terminal-ai/command.schema.json"
 install -m 700 "$script_dir/bin/terminal-ai-command" "$managed_helper"
@@ -264,4 +270,4 @@ print -- ""
 print -- "Installation complete."
 print -- "Backup: $backup_dir"
 print -- "Open a new tab with Command-T."
-print -- "Inline AI: type '# describe the command' and press Enter."
+print -- "Inline AI: type '# ask any question' and press Enter. Use '# /help' for controls."

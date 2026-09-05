@@ -73,46 +73,7 @@ if [[ -n "$terminal_upgrade_brew_prefix" && -r "$terminal_upgrade_brew_prefix/sh
     unset terminal_style
 fi
 
-_terminal_ai_command_widget() {
-    if [[ "$BUFFER" != '# '* ]]; then
-        zle -M 'AI: start the line with # and describe the command'
-        return 0
-    fi
-
-    local terminal_ai_request="${BUFFER#\# }"
-    if [[ -z "${terminal_ai_request//[[:space:]]/}" ]]; then
-        zle -M 'AI: add a description after #'
-        return 0
-    fi
-
-    zle -M 'AI: generating command; Control-C cancels'
-    zle redisplay
-
-    local terminal_ai_result
-    terminal_ai_result="$($HOME/.local/bin/mac-terminal-ai-command "$terminal_ai_request")"
-    local terminal_ai_status=$?
-
-    if (( terminal_ai_status == 0 )) && [[ -n "$terminal_ai_result" ]]; then
-        BUFFER="$terminal_ai_result"
-        CURSOR=${#BUFFER}
-        zle -M 'AI: review the command; Enter runs it'
-    else
-        zle -M 'AI: command generation failed'
-    fi
-    zle redisplay
-}
-zle -N terminal-ai-command _terminal_ai_command_widget
-
-_terminal_ai_accept_line() {
-    if [[ "$BUFFER" == '# '* ]]; then
-        _terminal_ai_command_widget
-    else
-        zle .accept-line
-    fi
-}
-if [[ "$(bindkey '^M')" == *' accept-line' ]]; then
-    zle -N accept-line _terminal_ai_accept_line
-fi
+[[ -r "$HOME/.config/mac-terminal-upgrade/zsh/terminal-ai.zsh" ]] && source "$HOME/.config/mac-terminal-upgrade/zsh/terminal-ai.zsh"
 
 if (( ! $+functions[work] && ! $+aliases[work] )); then
     function work {

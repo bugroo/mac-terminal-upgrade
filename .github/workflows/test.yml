@@ -19,8 +19,15 @@ jobs:
       - name: Validate scripts
         run: |
           zsh -n install.sh uninstall.sh update.sh doctor.zsh
-          zsh -n config/zsh/terminal-upgrade.zsh bin/terminal-ai-command
+          zsh -n config/zsh/terminal-upgrade.zsh config/zsh/terminal-ai.zsh bin/terminal-ai-command
+          node --check bin/terminal-ai-chat.mjs
           plutil -lint terminal/Mac-Terminal-Upgrade-Focus.terminal
 
       - name: Run installer regression suite
         run: ./tests/test-installer.zsh
+
+      - name: Run isolated AI protocol and safety tests
+        run: node --test tests/*.test.mjs
+
+      - name: Verify real Zsh line-editor interaction
+        run: expect tests/test-ai-zle.exp

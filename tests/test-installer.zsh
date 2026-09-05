@@ -60,45 +60,13 @@ HOME="$test_root" PATH="$feature_bin:/usr/bin:/bin" /bin/zsh -df -c '
     [[ "$FZF_ALT_C_OPTS" == *eza* ]]
 ' test-fzf "$test_root/.config/mac-terminal-upgrade/zsh/terminal-upgrade.zsh"
 
-fake_bin="$test_root/fake-bin"
-mkdir -p "$fake_bin"
-{
-    print '#!/bin/zsh'
-    print 'while (( $# )); do'
-    print '    if [[ "$1" == --output-last-message ]]; then shift; output_file="$1"; fi'
-    print '    shift'
-    print 'done'
-    print 'jq -n --arg command "$FAKE_CODEX_COMMAND" '\''{command: $command}'\'' > "$output_file"'
-} > "$fake_bin/codex"
-chmod 700 "$fake_bin/codex"
-
-ask_fake() {
-    FAKE_CODEX_COMMAND="$1" \
-    PATH="$fake_bin:$PATH" \
-    TERMINAL_AI_SCHEMA="$test_root/.config/mac-terminal-upgrade/terminal-ai/command.schema.json" \
-    "$test_root/.local/bin/mac-terminal-ai-command" 'test request'
-}
-
-[[ "$(ask_fake 'df -h /')" == 'df -h /' ]]
-[[ "$(ask_fake $'rm\t-rf /')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'find . -delete')" == '# REFUSED:'* ]]
-[[ "$(ask_fake "find . -'delete'")" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'rg --pre sh secret')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'ls & rm -rf /')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'ls !!')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'git grep --open-files-in-pager=sh needle')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'git diff --ext-diff')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'sysctl kern.maxfiles=123')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'sysctl -f settings.conf')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'sysctl -if settings.conf')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'sort -uo out input')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'du -ah . | sort -hr | head')" == 'du -ah . | sort -hr | head' ]]
-[[ "$(ask_fake $'# REFUSED: reason\ndate')" == '# REFUSED: the proposal did not pass the local read-only policy' ]]
-[[ "$(ask_fake $'# REFUSED: reason\tdate')" == '# REFUSED: the proposal did not pass the local read-only policy' ]]
-[[ "$(ask_fake $'ls \e[31m')" == '# REFUSED:'* ]]
-[[ "$(ask_fake $'ls \vdate')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'find . *')" == '# REFUSED:'* ]]
-[[ "$(ask_fake 'git status --short')" == 'git status --short' ]]
+# Old tabs fail safely until their line-editor integration is refreshed.
+if "$test_root/.local/bin/mac-terminal-ai-command" 'test request' >/dev/null 2>&1; then
+    print -u2 -- "The retired command-only helper still accepted a request."
+    exit 1
+fi
+[[ -r "$test_root/.config/mac-terminal-upgrade/zsh/terminal-ai.zsh" ]]
+node --check "$test_root/.config/mac-terminal-upgrade/terminal-ai/terminal-ai-chat.mjs"
 
 broken_root="$test_root-broken"
 mkdir -p "$broken_root"
@@ -143,7 +111,7 @@ fi
 cmp "$partial_root/.zshrc.expected" "$partial_root/.zshrc"
 [[ -e "$partial_root/.config/mac-terminal-upgrade/.installed-by-mac-terminal-upgrade" ]]
 
-if grep -RInE --exclude='test-installer.zsh' --exclude-dir='.git' '/Users/rootml|gho_|OPENAI_API_KEY|ANTHROPIC_API_KEY' "$repo_dir"; then
+if grep -RInE --exclude='test-installer.zsh' --exclude-dir='.git' --exclude-dir='node_modules' '/Users/rootml|gho_|OPENAI_API_KEY|ANTHROPIC_API_KEY' "$repo_dir"; then
     print -u2 -- "Local or sensitive information was found in the repository."
     exit 1
 fi

@@ -85,6 +85,7 @@ check_syntax "$repo_dir/install.sh" "Installer"
 check_syntax "$repo_dir/uninstall.sh" "Uninstaller"
 check_syntax "$repo_dir/update.sh" "Updater"
 check_syntax "$repo_dir/config/zsh/terminal-upgrade.zsh" "Repository Zsh integration"
+check_syntax "$repo_dir/config/zsh/terminal-ai.zsh" "Repository conversational AI integration"
 if plutil -lint "$repo_dir/terminal/Mac-Terminal-Upgrade-Focus.terminal" >/dev/null 2>&1; then
     pass "Terminal profile plist"
 else
@@ -101,6 +102,36 @@ check_syntax "$target_home/.zshrc" "User .zshrc"
 check_syntax "$managed_root/zsh/terminal-upgrade.zsh" "Installed Zsh integration"
 check_file "$managed_root/tmux/terminal-upgrade.conf" "installed tmux configuration"
 check_file "$target_home/.local/bin/mac-terminal-ai-command" "inline AI helper"
+check_syntax "$managed_root/zsh/terminal-ai.zsh" "Installed conversational AI integration"
+check_file "$managed_root/terminal-ai/terminal-ai-chat.mjs" "conversational AI client"
+if command -v node >/dev/null 2>&1; then
+    if node --check "$managed_root/terminal-ai/terminal-ai-chat.mjs" >/dev/null 2>&1; then
+        pass "conversational AI client syntax"
+    else
+        fail "conversational AI client syntax"
+    fi
+else
+    fail "Node.js is unavailable"
+fi
+if [[ "$skip_packages" != 1 ]]; then
+    if node --input-type=module -e 'import(process.argv[2]).then(m => m.checkVersion()).catch(() => process.exit(1))' mtu-version-check "$managed_root/terminal-ai/terminal-ai-chat.mjs" >/dev/null 2>&1; then
+        pass "Codex version supports the inline protocol"
+    else
+        fail "inline AI requires Codex 0.153.2 or newer"
+    fi
+fi
+for ai_item in zsh/terminal-ai.zsh terminal-ai/terminal-ai-chat.mjs; do
+    if [[ "$ai_item" == zsh/* ]]; then
+        ai_source="$repo_dir/config/$ai_item"
+    else
+        ai_source="$repo_dir/bin/terminal-ai-chat.mjs"
+    fi
+    if cmp -s "$ai_source" "$managed_root/$ai_item"; then
+        pass "installed $ai_item matches checkout"
+    else
+        fail "installed $ai_item differs from checkout"
+    fi
+done
 check_file "$target_home/.local/share/navi/cheats/mac-terminal-upgrade.cheat" "navi cheat sheet"
 
 check_managed_block "$target_home/.zshrc" "managed .zshrc block"

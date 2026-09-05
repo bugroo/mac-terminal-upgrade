@@ -1,0 +1,83 @@
+#!/usr/bin/expect -f
+# Real PTY + ZLE, using only a synthetic provider and an isolated test HOME.
+set timeout 10
+set repo [file normalize [file join [file dirname [info script]] ..]]
+set scratch [string trim [exec mktemp -d /private/tmp/mtu-zle.XXXXXX]]
+exec chmod 700 $scratch
+set env(MTU_TARGET_HOME) $scratch
+set env(MTU_SKIP_PACKAGES) 1
+set env(MTU_SKIP_TERMINAL) 1
+exec /bin/zsh $repo/install.sh
+file mkdir $scratch/fake-bin
+file link -symbolic $scratch/fake-bin/codex $repo/tests/fixtures/fake-app-server.mjs
+set env(HOME) $scratch
+set env(PATH) "$scratch/fake-bin:$env(PATH)"
+set env(TERM) xterm-256color
+set env(MTU_FAKE_MODE) success
+set env(MTU_TEST_MODULE) "$scratch/.config/mac-terminal-upgrade/zsh/terminal-ai.zsh"
+log_user 0
+spawn /bin/zsh -dfi
+send -- {unset RPS1; PS1='MTU> '; source "$MTU_TEST_MODULE"}
+send -- "\r"
+expect "MTU> "
+send -- "# general question\r"
+expect {
+    "Test answer: general question" {}
+    timeout { puts stderr "FAIL: question did not render an answer"; exit 1 }
+}
+expect "MTU> "
+send -- "question without hash\017"
+expect {
+    "Test answer: question without hash" {}
+    timeout { puts stderr "FAIL: Control-O did not send the bare question to AI"; exit 1 }
+}
+expect "MTU> "
+send -- "# /brief\r"
+expect "Brief mode:"
+expect "MTU> "
+send -- "# /learn\r"
+expect "Learning mode:"
+expect "MTU> "
+send -- "# suggest\r"
+expect "Suggested command"
+expect "MTU> "
+# An extra Enter after an answer must never run its command.
+send -- "\r"
+expect {
+    -re {\r\nMTU_EXECUTED_MARKER\r\n} { puts stderr "FAIL: suggestion auto-executed"; exit 1 }
+    "MTU> " {}
+    timeout { puts stderr "FAIL: empty Enter did not return to prompt"; exit 1 }
+}
+send -- "# /command\r"
+expect "Enter executes it"
+# Discard the staged command; prove it remained editable and was not executed.
+send -- "\025"
+send -- "print -r -- ZLE_NORMAL_COMMAND_OK\r"
+expect -re {\r\nZLE_NORMAL_COMMAND_OK\r\n}
+expect "MTU> "
+send -- "# cancel-me\r"
+expect "thinking"
+after 250
+send -- "\003"
+expect {
+    "cancel" {}
+    "MTU> " {}
+    timeout { puts stderr "FAIL: Control-C left the terminal blocked"; exit 1 }
+}
+send -- "\003"
+send -- "print -r -- ZLE_AFTER_CANCEL_OK\r"
+expect -re {\r\nZLE_AFTER_CANCEL_OK\r\n}
+expect "MTU> "
+send -- "fc -ln | grep -c '^# '\r"
+expect {
+    -re {\r\n0\r\n} {}
+    timeout { puts stderr "FAIL: AI questions leaked into shell history"; exit 1 }
+}
+expect "MTU> "
+send -- "# /new\r"
+expect "New conversation"
+expect "MTU> "
+send -- "exit\r"
+expect eof
+puts "OK: real ZLE questions, Control-O, learning controls, explicit staging, inert Enter, cancellation, normal commands and reset."
+puts "Isolated test directory: $scratch"

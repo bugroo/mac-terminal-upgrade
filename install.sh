@@ -7,17 +7,38 @@ script_dir="${0:A:h}"
 target_home="${MTU_TARGET_HOME:-$HOME}"
 skip_packages="${MTU_SKIP_PACKAGES:-0}"
 skip_terminal="${MTU_SKIP_TERMINAL:-0}"
+dry_run=0
 backup_root="$target_home/.config/mac-terminal-upgrade-backups"
 timestamp="$(date '+%Y-%m-%d-%H%M%S')-$$"
 backup_dir="$backup_root/$timestamp"
 
+usage() {
+    print -- "Usage: ./install.sh [--dry-run]"
+    print -- "  --dry-run  Validate the installation and show pending actions without changing anything."
+}
+
+while (( $# )); do
+    case "$1" in
+        --dry-run)
+            dry_run=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            print -u2 -- "Unknown option: $1"
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
 if [[ "$(uname -s)" != Darwin ]]; then
-    print -u2 -- "Este instalador solo admite macOS."
+    print -u2 -- "This installer supports macOS only."
     exit 1
 fi
-
-mkdir -p "$backup_dir"
-chmod 700 "$backup_root" "$backup_dir"
 
 backup_file() {
     local source_path="$1"
@@ -27,23 +48,11 @@ backup_file() {
     fi
 }
 
-backup_file "$target_home/.zshrc" zshrc
-backup_file "$target_home/.tmux.conf" tmux.conf
-backup_file "$target_home/.config/navi/config.yaml" navi-config.yaml
-backup_file "$target_home/.config/mac-terminal-upgrade" managed-config
-backup_file "$target_home/.local/bin/mac-terminal-ai-command" mac-terminal-ai-command
-backup_file "$target_home/.local/share/navi/cheats/mac-terminal-upgrade.cheat" mac-terminal-upgrade.cheat
-if [[ "$target_home" == "$HOME" ]]; then
-    if ! defaults export com.apple.Terminal "$backup_dir/Terminal.plist" >/dev/null 2>&1; then
-        backup_file "$target_home/Library/Preferences/com.apple.Terminal.plist" Terminal.plist
-    fi
-fi
-
 managed_root="$target_home/.config/mac-terminal-upgrade"
 install_marker="$managed_root/.installed-by-mac-terminal-upgrade"
 managed_helper="$target_home/.local/bin/mac-terminal-ai-command"
 managed_cheat="$target_home/.local/share/navi/cheats/mac-terminal-upgrade.cheat"
-profile_name='Mac Terminal Upgrade - Focus'
+profile_name='Mac-Terminal-Upgrade-Focus'
 profile_marker="$managed_root/terminal/profile-owned"
 
 validate_managed_block() {
@@ -77,7 +86,7 @@ tmux_end='# <<< mac-terminal-upgrade <<<'
 validate_managed_block "$target_home/.zshrc" "$zsh_begin" "$zsh_end"
 validate_managed_block "$target_home/.tmux.conf" "$tmux_begin" "$tmux_end"
 if [[ -e "$target_home/.zshrc" ]] && ! zsh -n "$target_home/.zshrc"; then
-    print -u2 -- "The existing Zsh configuration contains a syntax error. A backup was created, but nothing was installed."
+    print -u2 -- "The existing Zsh configuration contains a syntax error. Nothing was installed."
     exit 1
 fi
 zsh -n "$script_dir/config/zsh/terminal-upgrade.zsh"
@@ -97,10 +106,45 @@ if [[ -e "$managed_cheat" && ! -e "$install_marker" ]]; then
     exit 1
 fi
 if [[ "$skip_terminal" != 1 && "$target_home" == "$HOME" ]]; then
-    profile_exists="$(osascript -e 'tell application "Terminal" to exists settings set "Mac Terminal Upgrade - Focus"')"
-    if [[ "$profile_exists" == true && ! -e "$profile_marker" ]]; then
+    profile_exists="$(osascript -e "tell application \"Terminal\" to exists settings set \"$profile_name\"")"
+    if [[ "$profile_exists" == true && ! -e "$profile_marker" && ! -e "$install_marker" ]]; then
         print -u2 -- "A Terminal profile named '$profile_name' already exists and is not owned by this installer."
         exit 1
+    fi
+fi
+
+if (( dry_run )); then
+    print -- "Dry run: source files and destination ownership checks passed."
+    if [[ "$skip_packages" == 1 ]]; then
+        print -- "Dry run: package checks were skipped by MTU_SKIP_PACKAGES=1."
+    elif ! command -v brew >/dev/null 2>&1; then
+        print -- "Dry run: Homebrew and the Brewfile dependencies would be installed."
+    elif HOMEBREW_NO_AUTO_UPDATE=1 brew bundle check --no-upgrade --file "$script_dir/Brewfile" >/dev/null 2>&1; then
+        print -- "Dry run: all Brewfile dependencies are already installed."
+    else
+        print -- "Dry run: missing Brewfile dependencies would be installed."
+    fi
+    if [[ "$skip_terminal" == 1 || "$target_home" != "$HOME" ]]; then
+        print -- "Dry run: Terminal.app profile changes would be skipped."
+    else
+        print -- "Dry run: the Focus profile would be installed or refreshed."
+    fi
+    print -- "Dry run complete: no files, packages, or Terminal settings were changed."
+    exit 0
+fi
+
+mkdir -p "$backup_dir"
+chmod 700 "$backup_root" "$backup_dir"
+
+backup_file "$target_home/.zshrc" zshrc
+backup_file "$target_home/.tmux.conf" tmux.conf
+backup_file "$target_home/.config/navi/config.yaml" navi-config.yaml
+backup_file "$target_home/.config/mac-terminal-upgrade" managed-config
+backup_file "$target_home/.local/bin/mac-terminal-ai-command" mac-terminal-ai-command
+backup_file "$target_home/.local/share/navi/cheats/mac-terminal-upgrade.cheat" mac-terminal-upgrade.cheat
+if [[ "$target_home" == "$HOME" ]]; then
+    if ! defaults export com.apple.Terminal "$backup_dir/Terminal.plist" >/dev/null 2>&1; then
+        backup_file "$target_home/Library/Preferences/com.apple.Terminal.plist" Terminal.plist
     fi
 fi
 
@@ -190,11 +234,11 @@ if [[ "$skip_terminal" != 1 && "$target_home" == "$HOME" ]]; then
         chmod 600 "$managed_root/terminal/previous-default" "$managed_root/terminal/previous-startup"
     fi
 
-    profile_exists="$(osascript -e 'tell application "Terminal" to exists settings set "Mac Terminal Upgrade - Focus"')"
+    profile_exists="$(osascript -e "tell application \"Terminal\" to exists settings set \"$profile_name\"")"
     if [[ "$profile_exists" != true ]]; then
         open -a Terminal "$script_dir/terminal/Mac-Terminal-Upgrade-Focus.terminal"
         for attempt in {1..20}; do
-            profile_exists="$(osascript -e 'tell application "Terminal" to exists settings set "Mac Terminal Upgrade - Focus"')"
+            profile_exists="$(osascript -e "tell application \"Terminal\" to exists settings set \"$profile_name\"")"
             [[ "$profile_exists" == true ]] && break
             sleep 0.25
         done

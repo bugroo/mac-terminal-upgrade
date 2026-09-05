@@ -14,6 +14,16 @@ ps -Ao pid,pcpu,pmem,comm -r | head -16
 
 % files, search
 
+# Preview a file with syntax highlighting and line numbers
+bat --style=numbers <file>
+
+$ file: fd --type f . | head -100
+
+# Find files by name while respecting .gitignore
+fd <pattern> <directory>
+
+$ directory: printf '.\n'
+
 # Search for text inside a directory
 rg --hidden --glob '!.git' <text> <directory>
 

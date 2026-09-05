@@ -24,6 +24,16 @@ else
 fi
 
 if command -v fzf >/dev/null 2>&1; then
+    if command -v fd >/dev/null 2>&1; then
+        export FZF_CTRL_T_COMMAND='fd --hidden --follow --exclude .git --exclude node_modules --exclude target'
+        export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git --exclude node_modules --exclude target'
+    fi
+    if command -v bat >/dev/null 2>&1; then
+        export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:500 {} 2>/dev/null' --bind 'ctrl-/:toggle-preview'"
+    fi
+    if command -v eza >/dev/null 2>&1; then
+        export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always --icons=always {} 2>/dev/null | head -200'"
+    fi
     source <(fzf --zsh)
 fi
 

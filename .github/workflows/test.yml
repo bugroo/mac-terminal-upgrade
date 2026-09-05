@@ -1,0 +1,29 @@
+name: Test installer
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install test dependency
+        run: command -v rg >/dev/null || brew install ripgrep
+
+      - name: Validate scripts
+        run: |
+          zsh -n install.sh uninstall.sh update.sh doctor.zsh
+          zsh -n config/zsh/terminal-upgrade.zsh bin/terminal-ai-command
+          plutil -lint terminal/Mac-Terminal-Upgrade-Focus.terminal
+
+      - name: Run installer regression suite
+        run: ./tests/test-installer.zsh

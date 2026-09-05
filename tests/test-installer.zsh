@@ -10,6 +10,15 @@ mkdir -p "$test_root"
 printf '# existing configuration\nalias original="printf original"\n' > "$test_root/.zshrc"
 printf '# existing tmux configuration\nset -g mouse off\n' > "$test_root/.tmux.conf"
 
+cp "$test_root/.zshrc" "$test_root/.zshrc.before-dry-run"
+cp "$test_root/.tmux.conf" "$test_root/.tmux.conf.before-dry-run"
+dry_run_output="$(MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" --dry-run)"
+[[ "$dry_run_output" == *'Dry run complete: no files, packages, or Terminal settings were changed.'* ]]
+cmp "$test_root/.zshrc.before-dry-run" "$test_root/.zshrc"
+cmp "$test_root/.tmux.conf.before-dry-run" "$test_root/.tmux.conf"
+[[ ! -e "$test_root/.config/mac-terminal-upgrade/.installed-by-mac-terminal-upgrade" ]]
+[[ ! -d "$test_root/.config/mac-terminal-upgrade-backups" ]]
+
 MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null
 MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/install.sh" >/dev/null
 
@@ -23,6 +32,7 @@ rg -q 'set -g mouse off' "$test_root/.tmux.conf"
 zsh -n "$test_root/.zshrc"
 zsh -n "$test_root/.config/mac-terminal-upgrade/zsh/terminal-upgrade.zsh"
 zsh -n "$test_root/.local/bin/mac-terminal-ai-command"
+MTU_TARGET_HOME="$test_root" MTU_SKIP_PACKAGES=1 MTU_SKIP_TERMINAL=1 "$repo_dir/doctor.zsh" >/dev/null
 HOME="$test_root" PATH="/usr/bin:/bin" /bin/zsh -df -c '
     alias work="printf alias-work"
     alias ai="printf alias-ai"
@@ -33,6 +43,22 @@ HOME="$test_root" PATH="/usr/bin:/bin" /bin/zsh -df -c '
     [[ "$(alias work)" == *"printf alias-work"* ]]
     [[ "$(alias ai)" == *"printf alias-ai"* ]]
 ' test-shell "$test_root/.config/mac-terminal-upgrade/zsh/terminal-upgrade.zsh"
+
+feature_bin="$test_root/feature-bin"
+mkdir -p "$feature_bin"
+for feature_command in fd bat eza; do
+    printf '#!/bin/zsh\nexit 0\n' > "$feature_bin/$feature_command"
+    chmod 700 "$feature_bin/$feature_command"
+done
+printf '#!/bin/zsh\n[[ "$1" == --zsh ]] && print ":"\n' > "$feature_bin/fzf"
+chmod 700 "$feature_bin/fzf"
+HOME="$test_root" PATH="$feature_bin:/usr/bin:/bin" /bin/zsh -df -c '
+    source "$1"
+    [[ "$FZF_CTRL_T_COMMAND" == fd\ --hidden* ]]
+    [[ "$FZF_ALT_C_COMMAND" == fd\ --type\ d* ]]
+    [[ "$FZF_CTRL_T_OPTS" == *bat*toggle-preview* ]]
+    [[ "$FZF_ALT_C_OPTS" == *eza* ]]
+' test-fzf "$test_root/.config/mac-terminal-upgrade/zsh/terminal-upgrade.zsh"
 
 fake_bin="$test_root/fake-bin"
 mkdir -p "$fake_bin"

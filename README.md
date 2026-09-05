@@ -11,6 +11,7 @@ A reproducible upgrade for Apple Terminal. It keeps Terminal.app and Zsh, then a
 | Friction | What changes |
 | --- | --- |
 | Dense monochrome listings | `ll` shows file types, permissions, icons, and Git state in color |
+| Finding the right file interrupts the command | `Control-T` opens a fast file picker with a syntax-colored preview |
 | Long commands are difficult to remember | Start with `#` and describe the result; AI proposes one command for review |
 | Repeatedly typing project paths | `z project` learns the directories you visit |
 | Losing work when a window closes | `work` returns to a persistent tmux session |
@@ -26,10 +27,16 @@ gh repo clone bugroo/mac-terminal-upgrade ~/.mac-terminal-upgrade && ~/.mac-term
 
 The installer creates a timestamped backup before changing anything. Open a new tab with `Command-T` after it finishes.
 
+Preview every pending action without changing files, packages, or Terminal settings:
+
+```bash
+~/.mac-terminal-upgrade/install.sh --dry-run
+```
+
 ## What it installs
 
-- The `Mac Terminal Upgrade - Focus` Terminal profile and JetBrains Mono Nerd Font.
-- `eza`, `fzf`, `zoxide`, syntax highlighting, and history suggestions.
+- The `Mac-Terminal-Upgrade-Focus` Terminal profile and JetBrains Mono Nerd Font.
+- `eza`, `fzf`, `fd`, `bat`, `zoxide`, syntax highlighting, and history suggestions.
 - `navi` on `Control-G` and persistent tmux sessions through `work`.
 - Codex CLI shortcuts: `ai`, `ai-web`, `ai-build`, and `ai-resume`.
 - Inline AI command drafting: type `# describe the command`, then press `Enter`.
@@ -40,6 +47,8 @@ The installer creates a timestamped backup before changing anything. Open a new 
 l             # compact list with icons
 ll            # details, permissions, and Git state
 lt            # two-level directory tree
+bat README.md # syntax-colored file preview with line numbers
+fd config     # fast file search that respects .gitignore
 z project     # jump to a frequently used directory
 work          # open or recover the main tmux session
 ai            # open Codex with read-only access
@@ -47,6 +56,14 @@ ai-web        # read-only Codex session with web search
 ai-build      # allow Codex to modify the current project
 ai-resume     # resume the latest Codex session
 ```
+
+### Pick files and directories without typing paths
+
+- Press `Control-T` to select a file and insert its path. The right pane previews its contents with `bat`.
+- Press `Control-/` inside the picker to hide or show the preview.
+- Press `Option-C` to select a directory and move into it. The right pane previews its tree.
+
+The picker skips `.git`, `node_modules`, and `target` while retaining hidden files elsewhere.
 
 ### Find large entries without remembering the command
 
@@ -71,6 +88,16 @@ ll
 # permissions · owner · size · date · icon · Git state
 ```
 
+### Navigate command output like lightweight Warp blocks
+
+Terminal.app automatically marks prompt lines. These native shortcuts make each command and its output easier to revisit:
+
+- `Command-Up Arrow` / `Command-Down Arrow`: jump to the previous or next prompt.
+- `Shift-Command-A`: select the output between marks.
+- `Command-L`: clear back to the previous prompt mark.
+
+These are navigable prompt regions, not full Warp blocks; Terminal.app does not provide Warp's block model.
+
 ## Inline AI safety model
 
 The inline helper runs `codex exec` from an empty temporary directory. It does not attach shell history, previous output, or the contents of the current directory. Rules, plugins, apps, memories, and hooks are disabled, while the local Codex configuration is reused for ChatGPT authentication.
@@ -84,6 +111,22 @@ If Codex is not authenticated:
 ```bash
 codex login
 ```
+
+## Diagnose and update
+
+Run the read-only health check:
+
+```bash
+~/.mac-terminal-upgrade/doctor.zsh
+```
+
+Update the checkout with a fast-forward-only pull, create a fresh backup, and reapply the configuration:
+
+```bash
+~/.mac-terminal-upgrade/update.sh
+```
+
+The updater stops if the checkout contains local changes or is not on a branch. Preview the remote check and installer with `update.sh --dry-run`.
 
 ## Uninstall
 
@@ -118,8 +161,14 @@ Implementation last checked against primary documentation on September 5, 2026:
 - [Homebrew installation and supported prefixes](https://docs.brew.sh/Installation)
 - [Apple Terminal profiles](https://support.apple.com/guide/terminal/trml107/mac)
 - [fzf Zsh integration](https://github.com/junegunn/fzf#setting-up-shell-integration)
+- [fzf file previews and fd integration](https://github.com/junegunn/fzf/blob/master/README.md)
+- [bat syntax highlighting and previews](https://github.com/sharkdp/bat/blob/master/README.md)
+- [fd search behavior](https://github.com/sharkdp/fd/blob/master/README.md)
 - [zoxide Zsh integration](https://github.com/ajeetdsouza/zoxide#step-2-add-zoxide-to-your-shell)
 - [eza colors and icons](https://github.com/eza-community/eza/blob/main/man/eza.1.md)
 - [navi configuration](https://github.com/denisidoro/navi/blob/master/docs/configuration/README.md)
 - [tmux sessions and configuration](https://github.com/tmux/tmux/wiki/Getting-Started)
+- [Apple Terminal marks and bookmarks](https://support.apple.com/guide/terminal/trml135fbc26/mac)
+- [Homebrew Bundle checks](https://github.com/Homebrew/brew/blob/main/docs/Brew-Bundle-and-Brewfile.md)
+- [GitHub Actions runners](https://docs.github.com/en/actions/get-started/understand-github-actions)
 - [Non-interactive `codex exec`](https://github.com/openai/codex/blob/main/codex-rs/README.md#codex-exec-to-run-codex-programmaticallynon-interactively)
